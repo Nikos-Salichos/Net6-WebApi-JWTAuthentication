@@ -1,5 +1,8 @@
 ﻿using JWTAuthenticationWebApi.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -10,7 +13,13 @@ namespace JWTAuthenticationWebApi.Controllers
     public class AuthController : ControllerBase
     {
 
-        public static User user = new User();
+        public static User user = new();
+        private readonly IConfiguration configuration;
+
+        public AuthController(IConfiguration configuration)
+        {
+            this.configuration = configuration;
+        }
 
         [HttpPost("register")]
         public async Task<ActionResult<User>> Register(UserDto userDto)
@@ -38,10 +47,28 @@ namespace JWTAuthenticationWebApi.Controllers
                 return BadRequest("Wrong Password");
             }
 
-            return Ok("Login Successful");
+            string token = CreateToken(user);
+
+            return Ok($"Login Successful \r\n {token}");
         }
 
+        private string CreateToken(User user)
+        {
+            List<Claim> claims = new()
+            {
+                new Claim(ClaimTypes.Name, user.Username)
+            };
 
+            SymmetricSecurityKey? key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration.GetSection("AppSettings:Token").Value));
+
+            SigningCredentials? credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
+
+            JwtSecurityToken? token = new JwtSecurityToken(claims: claims, expires: DateTime.Now.AddDays(1), signingCredentials: credentials);
+
+            string? jwt = new JwtSecurityTokenHandler().WriteToken(token);
+
+            return jwt;
+        }
 
 
         private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
