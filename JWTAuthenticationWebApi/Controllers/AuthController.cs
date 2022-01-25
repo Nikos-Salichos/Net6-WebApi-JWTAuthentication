@@ -1,4 +1,5 @@
 ﻿using JWTAuthenticationWebApi.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -14,7 +15,7 @@ namespace JWTAuthenticationWebApi.Controllers
     {
         private readonly IConfiguration configuration;
 
-        public static User User1 { get; set; } = new();
+        public static new User User { get; set; } = new();
 
         public AuthController(IConfiguration configuration)
         {
@@ -26,28 +27,28 @@ namespace JWTAuthenticationWebApi.Controllers
         {
             CreatePasswordHash(userDto.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
-            User1.Username = userDto.Username;
-            User1.PasswordHash = passwordHash;
-            User1.PasswordSalt = passwordSalt;
+            User.Username = userDto.Username;
+            User.PasswordHash = passwordHash;
+            User.PasswordSalt = passwordSalt;
 
-            return Ok(User1);
+            return Ok(User);
         }
 
         [HttpPost("login")]
         public ActionResult<string> Login(UserDto userDto)
         {
-            if (User1.Username != userDto.Username)
+            if (User.Username != userDto.Username)
             {
                 return BadRequest("Wrong Username");
             }
 
 
-            if (!VerifyPasswordHash(userDto.Password, User1.PasswordHash, User1.PasswordSalt))
+            if (!VerifyPasswordHash(userDto.Password, User.PasswordHash, User.PasswordSalt))
             {
                 return BadRequest("Wrong Password");
             }
 
-            string token = CreateToken(User1);
+            string token = CreateToken(User);
 
             return Ok(token);
         }
@@ -57,6 +58,7 @@ namespace JWTAuthenticationWebApi.Controllers
             List<Claim> claims = new()
             {
                 new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Role, "Admin")
             };
 
             SymmetricSecurityKey? key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration.GetSection("AppSettings:Token").Value));
@@ -89,5 +91,18 @@ namespace JWTAuthenticationWebApi.Controllers
             }
         }
 
+        [HttpGet("GetUsername"), AllowAnonymous]
+        public string GetUsername()
+        {
+            return User.Username;
+        }
+
+        [HttpGet("GetUsernameAdmin"), Authorize(Roles = "Admin")]
+        public string GetAdmin()
+        {
+            User admin = new User();
+            admin.Username = "Nikos";
+            return admin.Username;
+        }
     }
 }
