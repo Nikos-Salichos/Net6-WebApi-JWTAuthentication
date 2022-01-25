@@ -12,9 +12,9 @@ namespace JWTAuthenticationWebApi.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-
-        public static User user = new();
         private readonly IConfiguration configuration;
+
+        public static User User1 { get; set; } = new();
 
         public AuthController(IConfiguration configuration)
         {
@@ -26,37 +26,37 @@ namespace JWTAuthenticationWebApi.Controllers
         {
             CreatePasswordHash(userDto.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
-            user.Username = userDto.Username;
-            user.PasswordHash = passwordHash;
-            user.PasswordSalt = passwordSalt;
+            User1.Username = userDto.Username;
+            User1.PasswordHash = passwordHash;
+            User1.PasswordSalt = passwordSalt;
 
-            return Ok(user);
+            return Ok(User1);
         }
 
         [HttpPost("login")]
         public ActionResult<string> Login(UserDto userDto)
         {
-            if (user.Username != userDto.Username)
+            if (User1.Username != userDto.Username)
             {
                 return BadRequest("Wrong Username");
             }
 
 
-            if (!VerifyPasswordHash(userDto.Password, user.PasswordHash, user.PasswordSalt))
+            if (!VerifyPasswordHash(userDto.Password, User1.PasswordHash, User1.PasswordSalt))
             {
                 return BadRequest("Wrong Password");
             }
 
-            string token = CreateToken(user);
+            string token = CreateToken(User1);
 
-            return Ok($"Login Successful \r\n {token}");
+            return Ok(token);
         }
 
         private string CreateToken(User user)
         {
             List<Claim> claims = new()
             {
-                new Claim(ClaimTypes.Name, user.Username)
+                new Claim(ClaimTypes.Name, user.Username),
             };
 
             SymmetricSecurityKey? key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration.GetSection("AppSettings:Token").Value));
@@ -82,13 +82,11 @@ namespace JWTAuthenticationWebApi.Controllers
 
         private bool VerifyPasswordHash(string password, byte[] passwordHash, byte[] passwordSalt)
         {
-            using (var hmac = new HMACSHA512(user.PasswordSalt))
+            using (var hmac = new HMACSHA512(passwordSalt))
             {
                 var computerHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
                 return computerHash.SequenceEqual(passwordHash);
-            };
-
-
+            }
         }
 
     }
