@@ -1,4 +1,5 @@
 ﻿using JWTAuthenticationWebApi.Models;
+using JWTAuthenticationWebApi.Services.UserService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -14,12 +15,14 @@ namespace JWTAuthenticationWebApi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IConfiguration configuration;
-
         public static new User User { get; set; } = new();
+        private readonly IUserService _userService;
 
-        public AuthController(IConfiguration configuration)
+
+        public AuthController(IConfiguration configuration, IUserService userService)
         {
             this.configuration = configuration;
+            _userService = userService;
         }
 
         [HttpPost("register")]
@@ -91,13 +94,11 @@ namespace JWTAuthenticationWebApi.Controllers
             }
         }
 
-        [HttpGet("GetUsername"), AllowAnonymous]
+        [HttpGet("GetUsername"), Authorize]
         public ActionResult<string> GetUsername()
         {
-            var userName = User?.Identity?.Name;
-            var userName2 = User.FindFirstValue(ClaimTypes.Name);
-
-            return User.Username;
+            var userName = _userService.GetMyName();
+            return Ok(userName);
         }
 
         [HttpGet("GetUsernameAdmin"), Authorize(Roles = "Admin")]

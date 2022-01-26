@@ -1,6 +1,7 @@
 ﻿namespace JWTAuthenticationWebApi.Services.UserService
 {
-    public class IUserService
+    public interface IUserService
     {
+        string GetMyName();
     }
 }
