@@ -92,16 +92,22 @@ namespace JWTAuthenticationWebApi.Controllers
         }
 
         [HttpGet("GetUsername"), AllowAnonymous]
-        public string GetUsername()
+        public ActionResult<string> GetUsername()
         {
+            var userName = User?.Identity?.Name;
+            var userName2 = User.FindFirstValue(ClaimTypes.Name);
+
             return User.Username;
         }
 
         [HttpGet("GetUsernameAdmin"), Authorize(Roles = "Admin")]
         public string GetAdmin()
         {
-            User admin = new User();
-            admin.Username = "Nikos";
+            User admin = new User
+            {
+                Username = "Nikos"
+            };
+
             return admin.Username;
         }
     }
